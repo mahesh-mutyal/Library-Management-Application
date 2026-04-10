@@ -1,0 +1,116 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/books" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0 flex-grow-1"><%= book.title %></h2>
+  <div class="d-flex gap-2">
+    <a href="/books/<%= book._id %>/edit" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i><%= t('common.edit') %></a>
+    <a href="/books/<%= book._id %>/qr" class="btn btn-outline-dark"><i class="bi bi-qr-code me-1"></i>QR</a>
+    <% if (currentUser.role === 'admin') { %>
+    <form action="/books/<%= book._id %>?_method=DELETE" method="POST"
+          onsubmit="return confirm('<%= t('common.confirm') %>')">
+      <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i><%= t('common.delete') %></button>
+    </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-3">
+    <% if (book.image) { %>
+      <img src="<%= book.image %>" alt="<%= book.title %>" class="img-fluid rounded shadow-sm w-100" style="max-height:350px;object-fit:cover;" />
+    <% } else { %>
+      <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height:250px;">
+        <i class="bi bi-book display-2 text-secondary"></i>
+      </div>
+    <% } %>
+    <% if (book.qrCode) { %>
+      <div class="text-center mt-3">
+        <img src="<%= book.qrCode %>" alt="QR" class="img-fluid" style="max-width:150px;" />
+        <p class="small text-muted mt-1"><%= book.bookNumber %></p>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <table class="table table-borderless mb-0">
+          <tr><th class="text-muted" width="40%">Book Number</th><td><code><%= book.bookNumber %></code></td></tr>
+          <tr><th class="text-muted">Author</th><td><%= book.author %></td></tr>
+          <tr><th class="text-muted">ISBN</th><td><%= book.isbn || '—' %></td></tr>
+          <tr><th class="text-muted">Category</th><td><span class="badge bg-primary"><%= book.category %></span></td></tr>
+          <tr><th class="text-muted">Language</th><td><%= book.language %></td></tr>
+          <tr><th class="text-muted">Publisher</th><td><%= book.publisher || '—' %></td></tr>
+          <tr><th class="text-muted">Year</th><td><%= book.publishYear || '—' %></td></tr>
+          <tr><th class="text-muted">Copies</th>
+            <td>
+              <span class="badge bg-<%= book.availableCopies > 0 ? 'success' : 'danger' %>">
+                <%= book.availableCopies %> available
+              </span> / <%= book.totalCopies %> total
+            </td>
+          </tr>
+          <tr><th class="text-muted">Times Borrowed</th><td><%= book.checkoutCount %></td></tr>
+          <% if (book.tags && book.tags.length) { %>
+          <tr><th class="text-muted">Tags</th>
+            <td><% book.tags.forEach(t => { %><span class="badge bg-light text-dark border me-1"><%= t %></span><% }) %></td>
+          </tr>
+          <% } %>
+        </table>
+        <% if (book.description) { %>
+        <hr />
+        <p class="text-muted small mb-0"><%= book.description %></p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Custom fields -->
+    <% if (book.customFields && book.customFields.length) { %>
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-sliders me-2"></i>Custom Fields
+      </div>
+      <div class="card-body">
+        <table class="table table-sm table-borderless mb-0">
+          <% book.customFields.forEach(f => { %>
+          <tr><th class="text-muted"><%= f.fieldName %></th><td><%= f.fieldValue %></td></tr>
+          <% }) %>
+        </table>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Quick actions -->
+    <% if (book.availableCopies > 0) { %>
+    <a href="/transactions/checkout?bookId=<%= book._id %>" class="btn btn-success mt-3 w-100">
+      <i class="bi bi-box-arrow-right me-2"></i>Checkout this Book
+    </a>
+    <% } %>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-clock-history me-2"></i>Recent Transactions
+      </div>
+      <% if (transactions.length === 0) { %>
+      <div class="card-body text-muted text-center py-4">No transactions yet.</div>
+      <% } else { %>
+      <ul class="list-group list-group-flush">
+        <% transactions.forEach(tx => { %>
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <span class="fw-semibold small"><%= tx.customer?.name %></span>
+            <span class="badge bg-<%= tx.status === 'returned' ? 'success' : tx.status === 'overdue' ? 'danger' : 'warning' %>">
+              <%= tx.status %>
+            </span>
+          </div>
+          <small class="text-muted">
+            Out: <%= new Date(tx.checkoutDate).toLocaleDateString('en-IN') %>
+            <% if (tx.checkinDate) { %> | In: <%= new Date(tx.checkinDate).toLocaleDateString('en-IN') %><% } %>
+          </small>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+    </div>
+  </div>
+</div>

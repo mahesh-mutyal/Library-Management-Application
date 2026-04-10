@@ -1,0 +1,160 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0"><i class="bi bi-bar-chart me-2 text-info"></i><%= t('reports.title') %></h2>
+  <div class="d-flex gap-2">
+    <a href="/reports/export?type=checkouts&from=<%= dateRange.from %>&to=<%= dateRange.to %>" class="btn btn-outline-success btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Export Checkouts
+    </a>
+    <a href="/reports/export?type=customers" class="btn btn-outline-primary btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Export Customers
+    </a>
+    <a href="/reports/export?type=fines" class="btn btn-outline-danger btn-sm">
+      <i class="bi bi-file-earmark-excel me-1"></i>Export Fines
+    </a>
+  </div>
+</div>
+
+<!-- Date filter -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form class="row g-2 align-items-end" method="GET">
+      <div class="col-md-4">
+        <label class="form-label fw-semibold"><%= t('reports.from') %></label>
+        <input type="date" name="from" class="form-control" value="<%= dateRange.from %>" />
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-semibold"><%= t('reports.to') %></label>
+        <input type="date" name="to" class="form-control" value="<%= dateRange.to %>" />
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-info text-white w-100"><i class="bi bi-funnel me-1"></i>Filter</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-primary text-white">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold"><%= checkouts.length %></div>
+        <div>Checkouts in Period</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-danger text-white">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold"><%= overdueList.length %></div>
+        <div>Currently Overdue</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-warning text-dark">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold">₹<%= totalFinesPending.toLocaleString('en-IN') %></div>
+        <div>Fines Pending</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm bg-success text-white">
+      <div class="card-body text-center">
+        <div class="fs-2 fw-bold">
+          ₹<%= revenueData.reduce((s, r) => s + r.total, 0).toLocaleString('en-IN') %>
+        </div>
+        <div>Fee Revenue in Period</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<ul class="nav nav-tabs mb-3" id="reportTabs">
+  <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#checkoutsTab">Checkouts (<%= checkouts.length %>)</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#overdueTab">Overdue (<%= overdueList.length %>)</a></li>
+  <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#finesTab">Pending Fines (<%= finesPending.length %>)</a></li>
+</ul>
+
+<div class="tab-content">
+  <!-- Checkouts Tab -->
+  <div class="tab-pane fade show active" id="checkoutsTab">
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Book</th><th>Customer</th><th>Checkout</th><th>Due</th><th>Returned</th><th>Status</th><th>Fine</th></tr>
+          </thead>
+          <tbody>
+            <% checkouts.slice(0,50).forEach(tx => { %>
+            <tr>
+              <td><div class="fw-semibold small"><%= tx.book?.title %></div><code class="small"><%= tx.book?.bookNumber %></code></td>
+              <td><div class="fw-semibold small"><%= tx.customer?.name %></div><small class="text-muted"><%= tx.customer?.mobile %></small></td>
+              <td class="small"><%= moment(tx.checkoutDate).format('DD/MM/YY') %></td>
+              <td class="small"><%= moment(tx.dueDate).format('DD/MM/YY') %></td>
+              <td class="small"><%= tx.checkinDate ? moment(tx.checkinDate).format('DD/MM/YY') : '—' %></td>
+              <td><span class="badge bg-<%= tx.status === 'returned' ? 'success' : tx.status === 'overdue' ? 'danger' : 'warning' %>"><%= tx.status %></span></td>
+              <td><% if (tx.fineAmount > 0) { %><span class="text-danger fw-bold small">₹<%= tx.fineAmount %></span><% } else { %>—<% } %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overdue Tab -->
+  <div class="tab-pane fade" id="overdueTab">
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Book</th><th>Customer</th><th>Due Date</th><th>Days Late</th><th>Est. Fine</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% overdueList.forEach(tx => { %>
+            <% const daysLate = Math.ceil((new Date() - new Date(tx.dueDate)) / (1000*60*60*24)); %>
+            <tr>
+              <td><div class="fw-semibold small"><%= tx.book?.title %></div><code class="small"><%= tx.book?.bookNumber %></code></td>
+              <td><div class="fw-semibold small"><%= tx.customer?.name %></div><small class="text-muted"><%= tx.customer?.mobile %></small></td>
+              <td class="text-danger fw-bold small"><%= moment(tx.dueDate).format('DD MMM YYYY') %></td>
+              <td><span class="badge bg-danger"><%= daysLate %> days</span></td>
+              <td class="fw-bold text-danger">₹<%= daysLate * tx.finePerDay %></td>
+              <td><a href="/transactions/checkin?bookNumber=<%= tx.book?.bookNumber %>" class="btn btn-sm btn-success">Check-in</a></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fines Tab -->
+  <div class="tab-pane fade" id="finesTab">
+    <div class="card border-0 shadow-sm">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Book</th><th>Customer</th><th>Fine Amount</th><th>Status</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% finesPending.forEach(tx => { %>
+            <tr>
+              <td><div class="fw-semibold small"><%= tx.book?.title %></div></td>
+              <td><div class="fw-semibold small"><%= tx.customer?.name %></div><small class="text-muted"><%= tx.customer?.mobile %></small></td>
+              <td class="fw-bold text-danger">₹<%= tx.fineAmount %></td>
+              <td><span class="badge bg-warning text-dark">pending</span></td>
+              <td>
+                <form action="/transactions/<%= tx._id %>/pay-fine" method="POST" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-warning">Mark Paid</button>
+                </form>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

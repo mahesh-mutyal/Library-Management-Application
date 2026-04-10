@@ -1,0 +1,120 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/customers" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0"><i class="bi bi-person-plus me-2 text-success"></i><%= t('customers.addCustomer') %></h2>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form action="/customers/add" method="POST" enctype="multipart/form-data" id="customerForm">
+      <h6 class="fw-bold text-muted mb-3">Personal Information</h6>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold"><%= t('customers.name') %> *</label>
+          <input type="text" name="name" class="form-control" required placeholder="e.g. Rajesh Patil" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold"><%= t('customers.email') %> *</label>
+          <input type="email" name="email" class="form-control" required placeholder="email@example.com" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.mobile') %> *</label>
+          <div class="input-group">
+            <span class="input-group-text">+91</span>
+            <input type="text" name="mobile" class="form-control" required pattern="[6-9]\d{9}" maxlength="10" placeholder="9876543210" />
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.monthlyFee') %> *</label>
+          <div class="input-group">
+            <span class="input-group-text">₹</span>
+            <input type="number" name="monthlyFee" class="form-control" value="100" min="0" required />
+          </div>
+        </div>
+      </div>
+
+      <hr class="my-4" />
+      <h6 class="fw-bold text-muted mb-3">Address</h6>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label fw-semibold">Street Address</label>
+          <input type="text" name="street" class="form-control" placeholder="House No, Street Name" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.city') %></label>
+          <input type="text" name="city" class="form-control" placeholder="Pune" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.state') %></label>
+          <input type="text" name="state" class="form-control" value="Maharashtra" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.pincode') %></label>
+          <input type="text" name="pincode" class="form-control" maxlength="6" pattern="\d{6}" placeholder="411001" />
+        </div>
+      </div>
+
+      <hr class="my-4" />
+      <h6 class="fw-bold text-muted mb-3">Government ID <small class="text-danger">(File stored securely — not publicly accessible)</small></h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.govtIdType') %></label>
+          <select name="govtIdType" class="form-select">
+            <% ['Aadhaar','PAN','Voter ID','Passport','Driving License'].forEach(id => { %>
+              <option value="<%= id %>"><%= id %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold"><%= t('customers.govtIdNumber') %></label>
+          <input type="text" name="govtIdNumber" class="form-control" placeholder="ID Number" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Upload ID (Image/PDF)</label>
+          <input type="file" name="govtIdFile" class="form-control" accept="image/*,.pdf" />
+        </div>
+      </div>
+
+      <hr class="my-4" />
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0 text-muted"><i class="bi bi-sliders me-2"></i>Custom Fields</h6>
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCustomField()">
+          <i class="bi bi-plus me-1"></i>Add Field
+        </button>
+      </div>
+      <div id="customFieldsContainer"></div>
+      <input type="hidden" name="customFieldsJson" id="customFieldsJson" />
+
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-success" onclick="serializeCustomFields()">
+          <i class="bi bi-person-check me-1"></i>Add Customer
+        </button>
+        <a href="/customers" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function addCustomField() {
+  const container = document.getElementById('customFieldsContainer');
+  const div = document.createElement('div');
+  div.className = 'row g-2 mb-2 custom-field-row';
+  div.innerHTML = `
+    <div class="col-5"><input type="text" class="form-control form-control-sm cf-name" placeholder="Field Name" /></div>
+    <div class="col-3"><select class="form-select form-select-sm cf-type"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="boolean">Yes/No</option></select></div>
+    <div class="col-3"><input type="text" class="form-control form-control-sm cf-value" placeholder="Value" /></div>
+    <div class="col-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.custom-field-row').remove()"><i class="bi bi-trash"></i></button></div>`;
+  container.appendChild(div);
+}
+function serializeCustomFields() {
+  const rows = document.querySelectorAll('.custom-field-row');
+  const fields = [];
+  rows.forEach(row => {
+    const name  = row.querySelector('.cf-name').value.trim();
+    const type  = row.querySelector('.cf-type').value;
+    const value = row.querySelector('.cf-value').value.trim();
+    if (name) fields.push({ fieldName: name, fieldType: type, fieldValue: value });
+  });
+  document.getElementById('customFieldsJson').value = JSON.stringify(fields);
+}
+</script>

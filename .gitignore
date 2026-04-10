@@ -1,0 +1,7 @@
+node_modules/
+.env
+uploads/ids/
+uploads/excel/
+*.log
+.DS_Store
+.claude/

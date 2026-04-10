@@ -1,0 +1,162 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/books" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0"><i class="bi bi-plus-circle me-2 text-primary"></i><%= t('books.addBook') %></h2>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form action="/books/add" method="POST" enctype="multipart/form-data" id="bookForm">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label fw-semibold"><%= t('books.bookTitle') %> *</label>
+              <input type="text" name="title" class="form-control" required placeholder="e.g. Mrutyunjay" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold"><%= t('books.bookNumber') %> *</label>
+              <input type="text" name="bookNumber" class="form-control" required placeholder="BK-0001" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold"><%= t('books.author') %> *</label>
+              <input type="text" name="author" class="form-control" required />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold"><%= t('books.category') %></label>
+              <select name="category" class="form-select">
+                <% categories.forEach(cat => { %>
+                  <option value="<%= cat %>"><%= cat %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold"><%= t('books.language') %></label>
+              <select name="language" class="form-select">
+                <option>English</option>
+                <option>Marathi</option>
+                <option>Hindi</option>
+                <option>Sanskrit</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold"><%= t('books.isbn') %></label>
+              <input type="text" name="isbn" class="form-control" placeholder="978-..." />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold"><%= t('books.publisher') %></label>
+              <input type="text" name="publisher" class="form-control" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold"><%= t('books.publishYear') %></label>
+              <input type="number" name="publishYear" class="form-control" min="1900" max="<%= new Date().getFullYear() %>" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Copies *</label>
+              <input type="number" name="totalCopies" class="form-control" value="1" min="1" required />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold"><%= t('books.description') %></label>
+              <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold"><%= t('books.tags') %></label>
+              <input type="text" name="tags" class="form-control" placeholder="e.g. mythology, historical, fiction" />
+            </div>
+            <div class="col-12">
+              <label class="form-label fw-semibold"><%= t('books.image') %></label>
+              <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)" />
+            </div>
+          </div>
+
+          <!-- Dynamic Custom Fields -->
+          <hr class="my-4" />
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-sliders me-2"></i><%= t('books.customFields') %></h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="addCustomField()">
+              <i class="bi bi-plus me-1"></i><%= t('books.addField') %>
+            </button>
+          </div>
+          <div id="customFieldsContainer"></div>
+          <input type="hidden" name="customFieldsJson" id="customFieldsJson" />
+
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary" onclick="serializeCustomFields()">
+              <i class="bi bi-save me-1"></i><%= t('common.save') %>
+            </button>
+            <a href="/books" class="btn btn-outline-secondary"><%= t('common.cancel') %></a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Panel -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center p-4">
+        <img id="imagePreview" src="" alt="" class="img-fluid rounded mb-3 d-none" style="max-height:250px;object-fit:cover;" />
+        <div id="imagePlaceholder" class="bg-light rounded p-4 text-muted">
+          <i class="bi bi-image display-4"></i>
+          <p class="small mt-2">Book cover preview</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewImage(input) {
+  const file = input.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('imagePreview').src = e.target.result;
+      document.getElementById('imagePreview').classList.remove('d-none');
+      document.getElementById('imagePlaceholder').classList.add('d-none');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+let fieldCount = 0;
+function addCustomField() {
+  fieldCount++;
+  const container = document.getElementById('customFieldsContainer');
+  const div = document.createElement('div');
+  div.className = 'row g-2 mb-2 custom-field-row';
+  div.innerHTML = `
+    <div class="col-5">
+      <input type="text" class="form-control form-control-sm cf-name" placeholder="Field Name" />
+    </div>
+    <div class="col-3">
+      <select class="form-select form-select-sm cf-type">
+        <option value="text">Text</option>
+        <option value="number">Number</option>
+        <option value="date">Date</option>
+        <option value="boolean">Yes/No</option>
+      </select>
+    </div>
+    <div class="col-3">
+      <input type="text" class="form-control form-control-sm cf-value" placeholder="Value" />
+    </div>
+    <div class="col-1">
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.custom-field-row').remove()">
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>`;
+  container.appendChild(div);
+}
+
+function serializeCustomFields() {
+  const rows = document.querySelectorAll('.custom-field-row');
+  const fields = [];
+  rows.forEach(row => {
+    const name  = row.querySelector('.cf-name').value.trim();
+    const type  = row.querySelector('.cf-type').value;
+    const value = row.querySelector('.cf-value').value.trim();
+    if (name) fields.push({ fieldName: name, fieldType: type, fieldValue: value });
+  });
+  document.getElementById('customFieldsJson').value = JSON.stringify(fields);
+}
+</script>

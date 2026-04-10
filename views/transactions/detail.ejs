@@ -1,0 +1,127 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/transactions" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0"><i class="bi bi-receipt me-2"></i>Transaction Detail</h2>
+</div>
+
+<div class="row g-3 justify-content-center">
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold">Transaction ID: <code><%= transaction._id %></code></span>
+        <span class="badge fs-6 bg-<%= transaction.status === 'returned' ? 'success' : transaction.status === 'overdue' ? 'danger' : 'warning' %>">
+          <%= transaction.status %>
+        </span>
+      </div>
+      <div class="card-body">
+        <table class="table table-borderless">
+          <tr>
+            <th class="text-muted" width="35%">Book</th>
+            <td>
+              <a href="/books/<%= transaction.book?._id %>" class="fw-bold"><%= transaction.book?.title %></a><br/>
+              <code><%= transaction.book?.bookNumber %></code>
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Customer</th>
+            <td>
+              <a href="/customers/<%= transaction.customer?._id %>" class="fw-bold"><%= transaction.customer?.name %></a><br/>
+              <span class="text-muted"><%= transaction.customer?.mobile %></span>
+            </td>
+          </tr>
+          <tr>
+            <th class="text-muted">Checked Out By</th>
+            <td><%= transaction.checkedOutBy?.name || '—' %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Checkout Date</th>
+            <td><%= moment(transaction.checkoutDate).format('DD MMM YYYY, hh:mm A') %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Due Date</th>
+            <td class="<%= transaction.status === 'overdue' ? 'text-danger fw-bold' : '' %>">
+              <%= moment(transaction.dueDate).format('DD MMM YYYY') %>
+            </td>
+          </tr>
+          <% if (transaction.checkinDate) { %>
+          <tr>
+            <th class="text-muted">Returned On</th>
+            <td><%= moment(transaction.checkinDate).format('DD MMM YYYY, hh:mm A') %></td>
+          </tr>
+          <tr>
+            <th class="text-muted">Checked In By</th>
+            <td><%= transaction.checkedInBy?.name || '—' %></td>
+          </tr>
+          <% } %>
+          <tr>
+            <th class="text-muted">Fine Amount</th>
+            <td>
+              <% const fine = transaction.status === 'returned' ? transaction.fineAmount : calculateFine(transaction.dueDate, new Date(), transaction.finePerDay); %>
+              <% if (fine > 0) { %>
+                <span class="fs-5 fw-bold text-danger">₹<%= fine %></span>
+                <span class="badge bg-<%= transaction.fineStatus === 'paid' ? 'secondary' : 'danger' %> ms-2">
+                  <%= transaction.fineStatus %>
+                </span>
+              <% } else { %>
+                <span class="text-success">No fine</span>
+              <% } %>
+            </td>
+          </tr>
+          <% if (transaction.notes) { %>
+          <tr><th class="text-muted">Notes</th><td><%= transaction.notes %></td></tr>
+          <% } %>
+        </table>
+      </div>
+      <div class="card-footer bg-white border-0 d-flex gap-2 flex-wrap">
+        <% if (transaction.status !== 'returned') { %>
+        <a href="/transactions/checkin?bookNumber=<%= transaction.book?.bookNumber %>" class="btn btn-success">
+          <i class="bi bi-box-arrow-in-left me-1"></i>Check-in Book
+        </a>
+        <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#extendModal">
+          <i class="bi bi-calendar-plus me-1"></i>Extend Due Date
+        </button>
+        <% } %>
+        <% if (transaction.fineStatus === 'pending') { %>
+        <form action="/transactions/<%= transaction._id %>/pay-fine" method="POST">
+          <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Mark fine as paid?')">
+            <i class="bi bi-cash me-1"></i>Mark Fine Paid
+          </button>
+        </form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Extend Due Date Modal -->
+<% if (transaction.status !== 'returned') { %>
+<div class="modal fade" id="extendModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i>Extend Due Date</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-1">Book: <strong><%= transaction.book?.title %></strong></p>
+        <p class="small text-muted mb-3">Current due: <strong><%= moment(transaction.dueDate).format('DD MMM YYYY') %></strong></p>
+        <form action="/transactions/<%= transaction._id %>/extend" method="POST">
+          <label class="form-label fw-semibold">Extend by (days)</label>
+          <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="document.getElementById('extraDaysInput').value=7">+7</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="document.getElementById('extraDaysInput').value=14">+14</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="document.getElementById('extraDaysInput').value=30">+30</button>
+          </div>
+          <div class="input-group mb-3">
+            <input type="number" name="extraDays" id="extraDaysInput" class="form-control"
+                   min="1" max="90" placeholder="Custom days" required />
+            <span class="input-group-text">days</span>
+          </div>
+          <button type="submit" class="btn btn-warning w-100 fw-semibold">
+            <i class="bi bi-calendar-check me-1"></i>Confirm Extension
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>

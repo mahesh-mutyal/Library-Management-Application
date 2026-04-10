@@ -1,0 +1,357 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-primary"></i><%= t('dashboard.title') %></h2>
+  <span class="badge bg-secondary fs-6"><%= currentUser.role %></span>
+</div>
+
+<!-- ── Stat Cards ──────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm stat-card bg-primary text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="mb-0 small opacity-75"><%= t('dashboard.totalBooks') %></p>
+            <h3 class="fw-bold mb-0"><%= stats.totalBooks %></h3>
+          </div>
+          <i class="bi bi-book fs-2 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm stat-card bg-success text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="mb-0 small opacity-75"><%= t('dashboard.totalCustomers') %></p>
+            <h3 class="fw-bold mb-0"><%= stats.totalCustomers %></h3>
+          </div>
+          <i class="bi bi-people fs-2 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm stat-card bg-warning text-dark">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="mb-0 small opacity-75"><%= t('dashboard.activeLoans') %></p>
+            <h3 class="fw-bold mb-0"><%= stats.activeTransactions %></h3>
+          </div>
+          <i class="bi bi-arrow-left-right fs-2 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm stat-card bg-danger text-white">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <p class="mb-0 small opacity-75"><%= t('dashboard.overdueBooks') %></p>
+            <h3 class="fw-bold mb-0"><%= stats.overdueTransactions %></h3>
+          </div>
+          <i class="bi bi-exclamation-triangle fs-2 opacity-50"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Today's Activity ───────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <p class="mb-2 fw-semibold"><%= t('dashboard.todayActivity') %></p>
+        <div class="d-flex justify-content-between">
+          <span class="badge bg-primary fs-6 px-3">⬆ <%= stats.todayCheckouts %> out</span>
+          <span class="badge bg-success fs-6 px-3">⬇ <%= stats.todayCheckins %> in</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <p class="mb-2 fw-semibold">Books Available</p>
+        <div class="d-flex align-items-center gap-3">
+          <span class="badge bg-success fs-6 px-3"><%= stats.availableBooks %> available</span>
+          <span class="badge bg-secondary fs-6 px-3"><%= stats.borrowedBooks %> out</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body d-flex justify-content-between align-items-center">
+        <div>
+          <p class="mb-1 fw-semibold">Quick Actions</p>
+          <div class="d-flex gap-2">
+            <a href="/transactions/checkout" class="btn btn-sm btn-primary"><i class="bi bi-box-arrow-right me-1"></i>Checkout</a>
+            <a href="/transactions/checkin" class="btn btn-sm btn-success"><i class="bi bi-box-arrow-in-left me-1"></i>Return</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Book Dues ───────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <!-- Overdue -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Overdue Books</span>
+        <span class="badge bg-danger"><%= overdueList.length %></span>
+      </div>
+      <% if (!overdueList.length) { %>
+      <div class="card-body text-center text-muted py-3">
+        <i class="bi bi-check-circle text-success fs-4"></i>
+        <p class="mb-0 small mt-1">No overdue books!</p>
+      </div>
+      <% } else { %>
+      <ul class="list-group list-group-flush">
+        <% overdueList.forEach(tx => { %>
+        <% const daysLate = Math.ceil((new Date() - new Date(tx.dueDate)) / (1000*60*60*24)); %>
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="fw-semibold small text-truncate" style="max-width:160px;" title="<%= tx.book?.title %>">
+                <%= tx.book?.title %>
+              </div>
+              <div class="text-muted small"><i class="bi bi-person me-1"></i><%= tx.customer?.name %></div>
+              <div class="text-danger small fw-semibold">
+                <i class="bi bi-calendar-x me-1"></i>Due: <%= moment(tx.dueDate).format('DD MMM YY') %>
+                <span class="badge bg-danger ms-1"><%= daysLate %>d late</span>
+              </div>
+            </div>
+            <div class="d-flex flex-column gap-1 ms-2">
+              <a href="/transactions/checkin?bookNumber=<%= tx.book?.bookNumber %>"
+                 class="btn btn-sm btn-success">Return</a>
+              <button class="btn btn-sm btn-outline-warning"
+                      onclick="openExtend('<%= tx._id %>', '<%= tx.book?.title %>', '<%= moment(tx.dueDate).format('DD MMM YY') %>')">
+                Extend
+              </button>
+            </div>
+          </div>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+      <div class="card-footer bg-white border-0">
+        <a href="/transactions?status=overdue" class="btn btn-sm btn-outline-danger">View All Overdue</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Due Soon (within 3 days) -->
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-clock me-2 text-warning"></i>Due Soon <small class="text-muted">(within 3 days)</small></span>
+        <span class="badge bg-warning text-dark"><%= dueSoonList.length %></span>
+      </div>
+      <% if (!dueSoonList.length) { %>
+      <div class="card-body text-center text-muted py-3">
+        <i class="bi bi-calendar-check text-success fs-4"></i>
+        <p class="mb-0 small mt-1">No books due soon.</p>
+      </div>
+      <% } else { %>
+      <ul class="list-group list-group-flush">
+        <% dueSoonList.forEach(tx => { %>
+        <% const daysLeft = Math.ceil((new Date(tx.dueDate) - new Date()) / (1000*60*60*24)); %>
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+              <div class="fw-semibold small text-truncate" style="max-width:160px;" title="<%= tx.book?.title %>">
+                <%= tx.book?.title %>
+              </div>
+              <div class="text-muted small"><i class="bi bi-person me-1"></i><%= tx.customer?.name %></div>
+              <div class="small">
+                <i class="bi bi-calendar me-1"></i>Due: <%= moment(tx.dueDate).format('DD MMM YY') %>
+                <span class="badge bg-<%= daysLeft <= 1 ? 'danger' : 'warning text-dark' %> ms-1">
+                  <%= daysLeft <= 0 ? 'Today' : daysLeft + 'd left' %>
+                </span>
+              </div>
+            </div>
+            <div class="d-flex flex-column gap-1 ms-2">
+              <a href="/transactions/checkin?bookNumber=<%= tx.book?.bookNumber %>"
+                 class="btn btn-sm btn-success">Return</a>
+              <button class="btn btn-sm btn-outline-warning"
+                      onclick="openExtend('<%= tx._id %>', '<%= tx.book?.title %>', '<%= moment(tx.dueDate).format('DD MMM YY') %>')">
+                Extend
+              </button>
+            </div>
+          </div>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+      <div class="card-footer bg-white border-0">
+        <a href="/transactions?status=active" class="btn btn-sm btn-outline-warning">View All Active</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts + Lists ────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-md-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-graph-up me-2 text-primary"></i><%= t('dashboard.checkoutTrend') %>
+      </div>
+      <div class="card-body">
+        <canvas id="checkoutChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-pie-chart me-2 text-success"></i>Books Overview
+      </div>
+      <div class="card-body d-flex flex-column align-items-center justify-content-center">
+        <canvas id="booksChart" height="180"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-stars me-2 text-warning"></i><%= t('dashboard.newestArrivals') %>
+      </div>
+      <ul class="list-group list-group-flush">
+        <% newestBooks.forEach(book => { %>
+        <li class="list-group-item d-flex align-items-center gap-3">
+          <% if (book.image) { %>
+            <img src="<%= book.image %>" alt="" class="rounded" style="width:40px;height:50px;object-fit:cover;" />
+          <% } else { %>
+            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width:40px;height:50px;">
+              <i class="bi bi-book text-secondary"></i>
+            </div>
+          <% } %>
+          <div class="flex-grow-1">
+            <div class="fw-semibold small"><%= book.title %></div>
+            <div class="text-muted small"><%= book.author %></div>
+          </div>
+          <span class="badge bg-<%= book.status === 'available' ? 'success' : 'warning' %>"><%= book.status %></span>
+        </li>
+        <% }) %>
+      </ul>
+      <div class="card-footer bg-white border-0">
+        <a href="/books" class="btn btn-sm btn-outline-primary">View All Books</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-fire me-2 text-danger"></i><%= t('dashboard.popularBooks') %>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Book</th><th class="text-center">Borrowed</th><th class="text-center">Available</th></tr>
+          </thead>
+          <tbody>
+            <% topBooks.forEach(book => { %>
+            <tr>
+              <td>
+                <div class="fw-semibold small"><%= book.title %></div>
+                <div class="text-muted small"><%= book.author %></div>
+              </td>
+              <td class="text-center"><span class="badge bg-primary"><%= book.checkoutCount %></span></td>
+              <td class="text-center">
+                <span class="badge bg-<%= book.availableCopies > 0 ? 'success' : 'danger' %>">
+                  <%= book.availableCopies %>/<%= book.totalCopies %>
+                </span>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Extend Due Date Modal ──────────────────────────────────────────────── -->
+<div class="modal fade" id="extendModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h6 class="modal-title fw-bold"><i class="bi bi-calendar-plus me-2"></i>Extend Due Date</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="small text-muted mb-1">Book: <strong id="extendBookTitle"></strong></p>
+        <p class="small text-muted mb-3">Current due: <strong id="extendCurrentDue"></strong></p>
+        <form id="extendForm" method="POST">
+          <label class="form-label fw-semibold">Extend by (days)</label>
+          <div class="d-flex gap-2 mb-3">
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="setDays(7)">+7</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="setDays(14)">+14</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm flex-fill" onclick="setDays(30)">+30</button>
+          </div>
+          <div class="input-group mb-3">
+            <input type="number" name="extraDays" id="extraDaysInput" class="form-control"
+                   min="1" max="90" placeholder="Custom days" required />
+            <span class="input-group-text">days</span>
+          </div>
+          <button type="submit" class="btn btn-warning w-100 fw-semibold">
+            <i class="bi bi-calendar-check me-1"></i>Confirm Extension
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Checkout Trend ──────────────────────────────────────────────────────────
+const trendData = <%- checkoutTrend %>;
+const monthNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+new Chart(document.getElementById('checkoutChart'), {
+  type: 'bar',
+  data: {
+    labels: trendData.map(d => `${monthNames[d._id.month]} ${d._id.year}`),
+    datasets: [{
+      label: 'Checkouts',
+      data: trendData.map(d => d.count),
+      backgroundColor: 'rgba(79,70,229,0.7)',
+      borderColor: 'rgba(79,70,229,1)',
+      borderWidth: 1, borderRadius: 4,
+    }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// ── Books Doughnut ──────────────────────────────────────────────────────────
+new Chart(document.getElementById('booksChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Available', 'Borrowed'],
+    datasets: [{ data: [<%= stats.availableBooks %>, <%= stats.borrowedBooks %>], backgroundColor: ['#059669', '#4f46e5'], borderWidth: 2 }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+// ── Extend Due Date ─────────────────────────────────────────────────────────
+function openExtend(txId, bookTitle, currentDue) {
+  document.getElementById('extendBookTitle').textContent = bookTitle;
+  document.getElementById('extendCurrentDue').textContent = currentDue;
+  document.getElementById('extendForm').action = `/transactions/${txId}/extend`;
+  document.getElementById('extraDaysInput').value = '';
+  new bootstrap.Modal(document.getElementById('extendModal')).show();
+}
+function setDays(n) {
+  document.getElementById('extraDaysInput').value = n;
+}
+</script>

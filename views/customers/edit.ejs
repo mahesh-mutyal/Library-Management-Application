@@ -1,0 +1,69 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/customers/<%= customer._id %>" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0"><i class="bi bi-pencil me-2 text-warning"></i>Edit Customer</h2>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-body">
+    <form action="/customers/<%= customer._id %>?_method=PUT" method="POST" enctype="multipart/form-data">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Full Name *</label>
+          <input type="text" name="name" class="form-control" required value="<%= customer.name %>" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Email *</label>
+          <input type="email" name="email" class="form-control" required value="<%= customer.email %>" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Mobile *</label>
+          <div class="input-group">
+            <span class="input-group-text">+91</span>
+            <input type="text" name="mobile" class="form-control" required value="<%= customer.mobile %>" maxlength="10" />
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Monthly Fee (₹)</label>
+          <input type="number" name="monthlyFee" class="form-control" value="<%= customer.monthlyFee %>" min="0" />
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Street</label>
+          <input type="text" name="street" class="form-control" value="<%= customer.address?.street || '' %>" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">City</label>
+          <input type="text" name="city" class="form-control" value="<%= customer.address?.city || '' %>" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">State</label>
+          <input type="text" name="state" class="form-control" value="<%= customer.address?.state || 'Maharashtra' %>" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Pincode</label>
+          <input type="text" name="pincode" class="form-control" value="<%= customer.address?.pincode || '' %>" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">ID Type</label>
+          <select name="govtIdType" class="form-select">
+            <% ['Aadhaar','PAN','Voter ID','Passport','Driving License'].forEach(id => { %>
+              <option value="<%= id %>" <%= customer.govtIdType === id ? 'selected' : '' %>><%= id %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">ID Number</label>
+          <input type="text" name="govtIdNumber" class="form-control" value="<%= customer.govtIdNumber || '' %>" />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Replace ID File</label>
+          <input type="file" name="govtIdFile" class="form-control" accept="image/*,.pdf" />
+        </div>
+      </div>
+
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="/customers/<%= customer._id %>" class="btn btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>

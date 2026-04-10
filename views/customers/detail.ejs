@@ -1,0 +1,151 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/customers" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <div class="avatar-circle me-3 fs-4"><%= customer.name.charAt(0).toUpperCase() %></div>
+  <div class="flex-grow-1">
+    <h2 class="fw-bold mb-0"><%= customer.name %></h2>
+    <small class="text-muted">Member since <%= moment(customer.membershipDate).format('DD MMM YYYY') %></small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="/customers/<%= customer._id %>/edit" class="btn btn-outline-primary"><i class="bi bi-pencil me-1"></i>Edit</a>
+    <a href="/transactions/checkout?customerId=<%= customer._id %>" class="btn btn-success"><i class="bi bi-box-arrow-right me-1"></i>Checkout</a>
+    <% if (currentUser.role === 'admin') { %>
+    <form action="/customers/<%= customer._id %>?_method=DELETE" method="POST"
+          onsubmit="return confirm('Delete this customer?')">
+      <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i></button>
+    </form>
+    <% } %>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Info Card -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-0 fw-semibold"><i class="bi bi-person me-2"></i>Details</div>
+      <div class="card-body">
+        <table class="table table-sm table-borderless mb-0">
+          <tr><th class="text-muted">Email</th><td><a href="mailto:<%= customer.email %>"><%= customer.email %></a></td></tr>
+          <tr><th class="text-muted">Mobile</th><td><a href="tel:+91<%= customer.mobile %>"><%= customer.mobile %></a></td></tr>
+          <tr><th class="text-muted">City</th><td><%= customer.address?.city || '—' %>, <%= customer.address?.state || '' %></td></tr>
+          <tr><th class="text-muted">Pincode</th><td><%= customer.address?.pincode || '—' %></td></tr>
+          <tr><th class="text-muted">Govt ID</th><td><%= customer.govtIdType %> <%= customer.govtIdNumber ? `(${customer.govtIdNumber})` : '' %></td></tr>
+          <tr><th class="text-muted">Monthly Fee</th><td class="fw-bold text-success">₹<%= customer.monthlyFee %></td></tr>
+          <tr><th class="text-muted">Total Borrowed</th><td><span class="badge bg-primary"><%= customer.totalBorrowed %></span></td></tr>
+          <tr><th class="text-muted">Membership Expiry</th><td><%= moment(customer.membershipExpiry).format('DD MMM YYYY') %></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Custom Fields -->
+    <% if (customer.customFields && customer.customFields.length) { %>
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-0 fw-semibold"><i class="bi bi-sliders me-2"></i>Custom Fields</div>
+      <div class="card-body">
+        <table class="table table-sm table-borderless mb-0">
+          <% customer.customFields.forEach(f => { %>
+          <tr><th class="text-muted"><%= f.fieldName %></th><td><%= f.fieldValue %></td></tr>
+          <% }) %>
+        </table>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Record Payment -->
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold"><i class="bi bi-cash me-2 text-success"></i>Record Payment</div>
+      <div class="card-body">
+        <form action="/customers/<%= customer._id %>/payment" method="POST">
+          <div class="row g-2">
+            <div class="col-6">
+              <select name="month" class="form-select form-select-sm">
+                <% ['January','February','March','April','May','June','July','August','September','October','November','December'].forEach((m,i) => { %>
+                  <option value="<%= i+1 %>" <%= (new Date().getMonth()+1) === (i+1) ? 'selected' : '' %>><%= m %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="col-6">
+              <input type="number" name="year" class="form-control form-control-sm" value="<%= new Date().getFullYear() %>" />
+            </div>
+            <div class="col-6">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text">₹</span>
+                <input type="number" name="amount" class="form-control" value="<%= customer.monthlyFee %>" required />
+              </div>
+            </div>
+            <div class="col-6">
+              <select name="status" class="form-select form-select-sm">
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="waived">Waived</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <button type="submit" class="btn btn-success btn-sm w-100">Record</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Transactions -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold"><i class="bi bi-clock-history me-2"></i>Transaction History</div>
+      <% if (!transactions.length) { %>
+      <div class="card-body text-center text-muted py-4">No transactions yet.</div>
+      <% } else { %>
+      <ul class="list-group list-group-flush" style="max-height:500px;overflow-y:auto;">
+        <% transactions.forEach(tx => { %>
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold small"><%= tx.book?.title %></div>
+              <div class="text-muted small"><code><%= tx.book?.bookNumber %></code></div>
+              <div class="text-muted small">Out: <%= moment(tx.checkoutDate).format('DD MMM YY') %></div>
+              <% if (tx.fineAmount > 0) { %>
+              <span class="badge bg-danger small">Fine: ₹<%= tx.fineAmount %></span>
+              <% } %>
+            </div>
+            <span class="badge bg-<%= tx.status === 'returned' ? 'success' : tx.status === 'overdue' ? 'danger' : 'warning' %>">
+              <%= tx.status %>
+            </span>
+          </div>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Payment History -->
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold"><i class="bi bi-receipt me-2 text-warning"></i>Payment History</div>
+      <% if (!paymentHistory.length) { %>
+      <div class="card-body text-center text-muted py-4">No payment records.</div>
+      <% } else { %>
+      <ul class="list-group list-group-flush" style="max-height:500px;overflow-y:auto;">
+        <% paymentHistory.forEach(p => { %>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-semibold small">
+              <%= ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][p.month] %> <%= p.year %>
+            </div>
+            <% if (p.paidDate) { %>
+            <small class="text-muted">Paid: <%= moment(p.paidDate).format('DD MMM YY') %></small>
+            <% } %>
+          </div>
+          <div class="text-end">
+            <div class="fw-bold">₹<%= p.amount %></div>
+            <span class="badge bg-<%= p.status === 'paid' ? 'success' : p.status === 'waived' ? 'secondary' : 'warning' %>">
+              <%= p.status %>
+            </span>
+          </div>
+        </li>
+        <% }) %>
+      </ul>
+      <% } %>
+    </div>
+  </div>
+</div>

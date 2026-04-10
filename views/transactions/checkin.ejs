@@ -1,0 +1,79 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/transactions" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0"><i class="bi bi-box-arrow-in-left me-2 text-success"></i>Check-in Book</h2>
+</div>
+
+<!-- Barcode / Search -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <form method="GET" action="/transactions/checkin" class="d-flex gap-2">
+      <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+        <input type="text" name="bookNumber" class="form-control form-control-lg"
+               placeholder="Scan barcode or enter Book Number..."
+               value="<%= bookNumber || '' %>" autofocus />
+      </div>
+      <button type="submit" class="btn btn-success btn-lg px-4">
+        <i class="bi bi-search me-1"></i>Find
+      </button>
+    </form>
+    <p class="text-muted small mt-2">
+      <i class="bi bi-info-circle me-1"></i>
+      Connect a USB barcode scanner — it works like a keyboard. Scan the book's QR/barcode to auto-fill.
+    </p>
+  </div>
+</div>
+
+<% if (bookNumber && !transaction) { %>
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle me-2"></i>
+  No active checkout found for book number <strong><%= bookNumber %></strong>.
+</div>
+<% } %>
+
+<% if (transaction) { %>
+<div class="row g-3 justify-content-center">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-lg">
+      <div class="card-header bg-success text-white fw-semibold">
+        <i class="bi bi-box-arrow-in-left me-2"></i>Book Return Details
+      </div>
+      <div class="card-body">
+        <table class="table table-borderless">
+          <tr><th class="text-muted" width="40%">Book</th><td><strong><%= transaction.book?.title %></strong><br/><code><%= transaction.book?.bookNumber %></code></td></tr>
+          <tr><th class="text-muted">Customer</th><td><strong><%= transaction.customer?.name %></strong><br/><%= transaction.customer?.mobile %></td></tr>
+          <tr><th class="text-muted">Checked Out</th><td><%= moment(transaction.checkoutDate).format('DD MMM YYYY') %></td></tr>
+          <tr>
+            <th class="text-muted">Due Date</th>
+            <td class="<%= new Date() > transaction.dueDate ? 'text-danger fw-bold' : '' %>">
+              <%= moment(transaction.dueDate).format('DD MMM YYYY') %>
+              <% if (new Date() > transaction.dueDate) { %><span class="badge bg-danger ms-2">Overdue</span><% } %>
+            </td>
+          </tr>
+          <% const fine = calculateFine(transaction.dueDate, new Date(), transaction.finePerDay); %>
+          <tr>
+            <th class="text-muted">Fine (today)</th>
+            <td>
+              <% if (fine > 0) { %>
+                <span class="fs-5 fw-bold text-danger">₹<%= fine %></span>
+                <small class="text-muted d-block">@ ₹<%= transaction.finePerDay %>/day</small>
+              <% } else { %>
+                <span class="text-success fw-semibold">No fine</span>
+              <% } %>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="card-footer bg-white">
+        <form action="/transactions/checkin" method="POST">
+          <input type="hidden" name="transactionId" value="<%= transaction._id %>" />
+          <button type="submit" class="btn btn-success btn-lg w-100"
+                  onclick="return confirm('Confirm return of this book?')">
+            <i class="bi bi-check-circle me-2"></i>Confirm Return
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<% } %>

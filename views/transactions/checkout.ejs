@@ -1,0 +1,205 @@
+<div class="d-flex align-items-center mb-4">
+  <a href="/transactions" class="btn btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i></a>
+  <h2 class="fw-bold mb-0"><i class="bi bi-box-arrow-right me-2 text-primary"></i>Checkout Book</h2>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-person me-2"></i>Select Customer
+      </div>
+      <div class="card-body">
+        <!-- Barcode/Search input -->
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" id="customerSearch" class="form-control"
+                 placeholder="Search by name, mobile or email..." autocomplete="off" />
+          <button class="btn btn-outline-secondary" type="button" onclick="openBarcodeScanner('customer')">
+            <i class="bi bi-upc-scan"></i>
+          </button>
+        </div>
+        <div id="customerResults" class="list-group mb-3"></div>
+
+        <% if (selectedCustomer) { %>
+        <div class="alert alert-success p-3" id="selectedCustomerInfo">
+          <strong><i class="bi bi-person-check me-2"></i><%= selectedCustomer.name %></strong><br/>
+          <small><%= selectedCustomer.email %> | <%= selectedCustomer.mobile %></small>
+        </div>
+        <input type="hidden" id="customerId" value="<%= selectedCustomer._id %>" />
+        <% } else { %>
+        <div id="selectedCustomerInfo" class="d-none">
+          <div class="alert alert-success p-3">
+            <strong><i class="bi bi-person-check me-2"></i><span id="selectedCustomerName"></span></strong><br/>
+            <small><span id="selectedCustomerEmail"></span> | <span id="selectedCustomerMobile"></span></small>
+          </div>
+        </div>
+        <input type="hidden" id="customerId" value="" />
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-0 fw-semibold">
+        <i class="bi bi-book me-2"></i>Select Book
+      </div>
+      <div class="card-body">
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" id="bookSearch" class="form-control"
+                 placeholder="Search by title, author or book number..." autocomplete="off" />
+          <button class="btn btn-outline-secondary" type="button" onclick="openBarcodeScanner('book')">
+            <i class="bi bi-upc-scan"></i>
+          </button>
+        </div>
+        <div id="bookResults" class="list-group mb-3"></div>
+
+        <% if (selectedBook) { %>
+        <div class="alert alert-<%= selectedBook.availableCopies > 0 ? 'success' : 'danger' %> p-3" id="selectedBookInfo">
+          <strong><i class="bi bi-book me-2"></i><%= selectedBook.title %></strong><br/>
+          <small><%= selectedBook.author %> | <code><%= selectedBook.bookNumber %></code></small><br/>
+          <span class="badge bg-<%= selectedBook.availableCopies > 0 ? 'success' : 'danger' %>">
+            <%= selectedBook.availableCopies %> available
+          </span>
+        </div>
+        <input type="hidden" id="bookId" value="<%= selectedBook._id %>" />
+        <% } else { %>
+        <div id="selectedBookInfo" class="d-none">
+          <div class="alert alert-success p-3">
+            <strong><i class="bi bi-book me-2"></i><span id="selectedBookTitle"></span></strong><br/>
+            <small><span id="selectedBookAuthor"></span> | <code><span id="selectedBookNumber"></span></code></small><br/>
+            <span class="badge" id="selectedBookAvail"></span>
+          </div>
+        </div>
+        <input type="hidden" id="bookId" value="" />
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Checkout Form -->
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-body">
+    <form action="/transactions/checkout" method="POST" id="checkoutForm">
+      <input type="hidden" name="customerId" id="formCustomerId" value="<%= selectedCustomer?._id || '' %>" />
+      <input type="hidden" name="bookId" id="formBookId" value="<%= selectedBook?._id || '' %>" />
+
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Loan Period (days)</label>
+          <select name="dueDays" class="form-select">
+            <option value="7">7 days</option>
+            <option value="14" selected>14 days</option>
+            <option value="21">21 days</option>
+            <option value="30">30 days</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Notes (optional)</label>
+          <input type="text" name="notes" class="form-control" placeholder="Any notes..." />
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100 btn-lg" id="checkoutBtn" disabled>
+            <i class="bi bi-box-arrow-right me-2"></i>Checkout
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+let selectedCustomerId = document.getElementById('formCustomerId').value;
+let selectedBookId = document.getElementById('formBookId').value;
+
+function updateCheckoutBtn() {
+  const btn = document.getElementById('checkoutBtn');
+  btn.disabled = !(selectedCustomerId && selectedBookId);
+}
+
+// Customer search
+let customerTimer;
+document.getElementById('customerSearch').addEventListener('input', function () {
+  clearTimeout(customerTimer);
+  const q = this.value.trim();
+  if (q.length < 2) { document.getElementById('customerResults').innerHTML = ''; return; }
+  customerTimer = setTimeout(() => {
+    fetch(`/api/customers/search?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        const div = document.getElementById('customerResults');
+        div.innerHTML = data.map(c => `
+          <button type="button" class="list-group-item list-group-item-action"
+            onclick="selectCustomer('${c._id}', '${c.name}', '${c.email}', '${c.mobile}')">
+            <strong>${c.name}</strong> — ${c.mobile}
+          </button>`).join('');
+      });
+  }, 300);
+});
+
+function selectCustomer(id, name, email, mobile) {
+  selectedCustomerId = id;
+  document.getElementById('formCustomerId').value = id;
+  document.getElementById('selectedCustomerName').textContent = name;
+  document.getElementById('selectedCustomerEmail').textContent = email;
+  document.getElementById('selectedCustomerMobile').textContent = mobile;
+  document.getElementById('selectedCustomerInfo').classList.remove('d-none');
+  document.getElementById('customerResults').innerHTML = '';
+  document.getElementById('customerSearch').value = name;
+  updateCheckoutBtn();
+}
+
+// Book search
+let bookTimer;
+document.getElementById('bookSearch').addEventListener('input', function () {
+  clearTimeout(bookTimer);
+  const q = this.value.trim();
+  if (q.length < 2) { document.getElementById('bookResults').innerHTML = ''; return; }
+  bookTimer = setTimeout(() => {
+    fetch(`/api/books/search?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        const div = document.getElementById('bookResults');
+        div.innerHTML = data.map(b => `
+          <button type="button" class="list-group-item list-group-item-action ${b.availableCopies === 0 ? 'list-group-item-warning' : ''}"
+            onclick="selectBook('${b._id}', '${b.title}', '${b.author}', '${b.bookNumber}', ${b.availableCopies})">
+            <strong>${b.title}</strong> — ${b.author}
+            <span class="badge bg-${b.availableCopies > 0 ? 'success' : 'danger'} float-end">${b.availableCopies} avail.</span>
+          </button>`).join('');
+      });
+  }, 300);
+});
+
+function selectBook(id, title, author, bookNumber, avail) {
+  selectedBookId = id;
+  document.getElementById('formBookId').value = id;
+  document.getElementById('selectedBookTitle').textContent = title;
+  document.getElementById('selectedBookAuthor').textContent = author;
+  document.getElementById('selectedBookNumber').textContent = bookNumber;
+  const badge = document.getElementById('selectedBookAvail');
+  badge.textContent = avail + ' available';
+  badge.className = 'badge bg-' + (avail > 0 ? 'success' : 'danger');
+  document.getElementById('selectedBookInfo').classList.remove('d-none');
+  document.getElementById('bookResults').innerHTML = '';
+  document.getElementById('bookSearch').value = title;
+  updateCheckoutBtn();
+}
+
+// Barcode scanner stub (reads input from keyboard wedge scanner)
+function openBarcodeScanner(target) {
+  const val = prompt(`Scan or enter ${target === 'book' ? 'Book Number' : 'Customer Mobile'}:`);
+  if (!val) return;
+  if (target === 'book') {
+    document.getElementById('bookSearch').value = val;
+    document.getElementById('bookSearch').dispatchEvent(new Event('input'));
+  } else {
+    document.getElementById('customerSearch').value = val;
+    document.getElementById('customerSearch').dispatchEvent(new Event('input'));
+  }
+}
+
+updateCheckoutBtn();
+</script>
